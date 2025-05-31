@@ -1,0 +1,64 @@
+name: CI Back
+
+on:
+  pull_request:
+    branches:
+      - main
+      - back
+    paths:
+      - 'back/**'
+      - '.github/workflows/ci-back.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./back
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: MJSolutions
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=3
+    steps:
+      - uses: actions/checkout@v4
+      - name: Set up PHP and Composer
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.1'
+      - name: Install dependencies
+        run: composer install --prefer-dist --no-progress --no-suggest
+        env:
+          APP_ENV: ci
+          DATABASE_URL: "mysql://root:root@127.0.0.1:3306/MJSolutions?serverVersion=8.0.32&charset=utf8mb4"
+      - name: Wait for MySQL to be ready
+        run: |
+          for i in {1..30}; do
+            if mysqladmin ping -h"127.0.0.1" -uroot -proot; then
+              break
+            fi
+            sleep 2
+          done
+      - name: Create database
+        run: php bin/console doctrine:database:create --if-not-exists
+        env:
+          APP_ENV: ci
+          DATABASE_URL: "mysql://root:root@127.0.0.1:3306/MJSolutions?serverVersion=8.0.32&charset=utf8mb4"
+      - name: Run migrations
+        run: php bin/console doctrine:migrations:migrate --no-interaction || true
+        env:
+          APP_ENV: ci
+          DATABASE_URL: "mysql://root:root@127.0.0.1:3306/MJSolutions?serverVersion=8.0.32&charset=utf8mb4"
+      - name: Run tests
+        run: php bin/phpunit
+        env:
+          APP_ENV: ci
+          DATABASE_URL: "mysql://root:root@127.0.0.1:3306/MJSolutions?serverVersion=8.0.32&charset=utf8mb4"
