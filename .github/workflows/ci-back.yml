@@ -58,7 +58,7 @@ jobs:
           APP_ENV: ci
           DATABASE_URL: "mysql://root:root@127.0.0.1:3306/MJSolutions?serverVersion=8.0.32&charset=utf8mb4"
       - name: Run tests
-        run: php bin/phpunit
+        run: php vendor/bin/phpunit
         env:
           APP_ENV: ci
           DATABASE_URL: "mysql://root:root@127.0.0.1:3306/MJSolutions?serverVersion=8.0.32&charset=utf8mb4"
